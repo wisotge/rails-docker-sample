@@ -1,0 +1,53 @@
+version: "3.9"
+
+networks:
+  development:
+services:
+  database:
+    image: postgres:13.5
+    container_name: database
+    networks: 
+      development: 
+    volumes:
+      - ./.postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    restart: always
+  redis: 
+    image: redis
+    container_name: redis
+    networks: 
+      development: 
+    volumes:
+      - ./.redis:/data
+    ports:
+      - "6379:6379"
+    command: redis-server
+    links:
+      - database
+    restart: always
+  server:
+    image: application
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: server
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+    networks: 
+      - development
+    ports:
+      - "8080:8080"
+    env_file: .env.development
+    entrypoint: dev-entrypoint.sh
+    command: ['bundle', 'exec', 'rails', 's', '-p', '8080', '-b', '0.0.0.0']
+    environment:
+      RAILS_ENV: development
+    depends_on:
+      - database
+      - redis
