@@ -24,6 +24,13 @@ docker-compose up -d
 
 <br/>
 
+### 🔨 Rails Version
+```
+6.0.4
+```
+
+<br/>
+
 ### Database
 Set your Database and Redis info
 ```
