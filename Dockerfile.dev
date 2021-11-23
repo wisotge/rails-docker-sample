@@ -1,0 +1,53 @@
+# Ruby stable release version
+FROM ubuntu:trusty
+
+ENV APP_PATH /usr/src/app
+ENV BUNDLE_VERSION 2.1.4
+ENV BUNDLE_PATH /usr/local/bundle/gems
+ENV RAILS_PORT 8080
+
+COPY ./dev-docker-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
+
+RUN apt-get update
+RUN apt-get install -y build-essential nodejs postgresql-client curl git libssl-dev libreadline-dev zlib1g-dev postgresql-contrib libpq-dev
+RUN mkdir -p $APP_PATH
+
+WORKDIR $APP_PATH
+EXPOSE $RAILS_PORT
+
+# Install rbenv
+RUN git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
+
+# Settings
+RUN echo '# rbenv setup' > /etc/profile.d/rbenv.sh
+RUN echo 'export RBENV_ROOT=/usr/local/rbenv' >> /etc/profile.d/rbenv.sh
+RUN echo 'export PATH="$RBENV_ROOT/bin:$PATH"' >> /etc/profile.d/rbenv.sh
+RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
+RUN chmod +x /etc/profile.d/rbenv.sh
+
+# Install Ruby and Rails
+RUN mkdir /usr/local/rbenv/plugins
+CMD cd ~/.rbenv/plugins
+RUN git clone git://github.com/sstephenson/ruby-build.git
+RUN git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
+
+ENV RBENV_ROOT /usr/local/rbenv
+ENV PATH $RBENV_ROOT/bin:$RBENV_ROOT/shims:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV RUBY_CONFIGURE_OPTS --with-readline-dir="/usr/lib/x86_64-linux-gnu/libreadline.so"
+
+# Install Ruby 2.7.4
+RUN rbenv install 2.7.4
+RUN rbenv global 2.7.4
+RUN rbenv rehash
+
+# Install bundler AND Bundle
+WORKDIR /app
+COPY . /app
+COPY Rakefile /app/Rakefile
+COPY Gemfile /app/Gemfile
+RUN bundle install
+
+EXPOSE $RAILS_PORT
+
+CMD ['bundle', 'exec', 'rails', 's', '-p', '8080', '-b', '0.0.0.0']
